@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
 dotenv.config();
 
 const stripe = require("stripe")(process.env.STRIPE_KEY);
@@ -8,7 +9,25 @@ const stripe = require("stripe")(process.env.STRIPE_KEY);
 const app = express();
 
 // ========== MIDDLEWARE ==========
-app.use(cors({ origin: "http://localhost:5173" })); // Frontend URL
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://ethiotemesgen.github.io",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (Postman, server-to-server)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+  }),
+);
+
 app.use(express.json()); // Parse JSON bodies
 
 // ========== TEST ROUTE ==========
@@ -26,9 +45,8 @@ app.post("/payments/create", async (req, res) => {
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: total, // in cents
+      amount: total, // cents
       currency: "usd",
-      // optional: automatic payment methods (Stripe auto-detects card type)
       automatic_payment_methods: { enabled: true },
     });
 
